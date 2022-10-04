@@ -1,0 +1,40 @@
+version: "3.9"
+
+volumes:
+  letsencrypt:
+networks:
+  traefik-public:
+    driver: bridge
+
+services:
+  traefik:
+    image: "traefik:v2.8"
+    container_name: "traefik"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - traefik-public
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.server.entrypoints=websecure"
+      - "traefik.http.routers.server.service=server"
+      - "traefik.http.services.server.loadbalancer.server.port=8000"
+    networks:
+      - traefik-public
