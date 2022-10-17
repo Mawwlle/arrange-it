@@ -5,6 +5,7 @@ CREATE TABLE "hobby" (
     PRIMARY KEY (designation)
 );
 
+
 CREATE TABLE "place" (
     name                VARCHAR(100) NOT NULL,
     point               POINT NOT NULL,
@@ -12,11 +13,13 @@ CREATE TABLE "place" (
     PRIMARY KEY (name)
 );
 
+
 CREATE TABLE "tag" (
     name                VARCHAR(10) NOT NULL,
 
     PRIMARY KEY (name)
 );
+
 
 CREATE TABLE "rank" (
     designation         VARCHAR(15) NOT NULL,
@@ -24,11 +27,13 @@ CREATE TABLE "rank" (
     PRIMARY KEY (designation)
 );
 
+
 CREATE TABLE "role" (
     name                VARCHAR(15) NOT NULL,
 
     PRIMARY KEY (name)
 );
+
 
 CREATE TABLE "user" (
     id                  SERIAl,
@@ -50,6 +55,17 @@ CREATE TABLE "user" (
     CONSTRAINT user_age CHECK (age > 0 AND age < 120)
 );
 
+
+CREATE TABLE "comment" (
+    id                  SERIAL,
+    text                VARCHAR(256) NOT NULL,
+    "user"              INT NOT NULL,
+
+    PRIMARY KEY (id),
+    FOREIGN KEY ("user") REFERENCES user("id")
+);
+
+
 CREATE TYPE STATE AS ENUM ('pending approval', 'active', 'ended', 'rejected');
 CREATE TABLE "event" (
     id                  SERIAl,
@@ -62,8 +78,10 @@ CREATE TABLE "event" (
     state               STATE,
 
     PRIMARY KEY (id),
-    FOREIGN KEY (place) REFERENCES place(name)
+    FOREIGN KEY (place) REFERENCES place(name),
+    FOREIGN KEY (comment) REFERENCES comment(id)
 );
+
 
 CREATE TABLE "event_tag_mapper" (
     tag                 VARCHAR(10) NOT NULL,
@@ -73,6 +91,7 @@ CREATE TABLE "event_tag_mapper" (
     FOREIGN KEY (event_id) REFERENCES event(id),
     FOREIGN KEY (tag) REFERENCES tag(name)
 );
+
 
 CREATE TABLE "user_visit_event" (
     user_id             INT NOT NULL,
@@ -84,6 +103,7 @@ CREATE TABLE "user_visit_event" (
     FOREIGN KEY (event_id) REFERENCES "event"(id)
 );
 
+
 CREATE TABLE "user_hobby_mapper" (
     designation         VARCHAR(15) NOT NULL,
     "user"                INT NOT NULL,
@@ -91,7 +111,10 @@ CREATE TABLE "user_hobby_mapper" (
     PRIMARY KEY ("user", designation),
     FOREIGN KEY (designation) REFERENCES "hobby"(designation),
     FOREIGN KEY ("user") REFERENCES "user"(id)
-)
+);
+
+
+
 
 -- migrate:down
 DROP TABLE "user_visit_event";
