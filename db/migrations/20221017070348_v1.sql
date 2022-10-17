@@ -97,5 +97,3 @@ DROP TABLE "place";
 DROP TABLE "tag";
 DROP TABLE "rank";
 DROP TABLE "role";
-
-

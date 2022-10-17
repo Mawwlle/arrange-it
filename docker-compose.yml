@@ -40,7 +40,7 @@ services:
       - traefik-public
 
   postgres:
-    image: postgres
+    image: postgres:14
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=abc
