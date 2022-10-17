@@ -59,5 +59,11 @@ async def test_version(db: asyncpg.connection.Connection) -> None:
 
 @pytest.mark.asyncio
 async def test_tag_dataset(tags: list[str], db: asyncpg.connection.Connection) -> None:
+
     row = await db.fetch('SELECT * FROM tag')
-    assert [record.get("name") for record in row] == tags
+
+    for record in row:
+        if name := record.get("name"):
+            assert name in tags, f"{name} not in tags! Something strange in DB or code!"
+        else:
+            raise AssertionError("None value is not valid for this column!")
