@@ -1,4 +1,8 @@
 -- migrate:up
+-- TODO: ADD id fields to entities
+-- TODO: ADD date to event
+-- TODO: ADD date to comment
+
 CREATE TABLE "hobby" (
     designation         VARCHAR(15) NOT NULL,
 
@@ -62,7 +66,7 @@ CREATE TABLE "comment" (
     "user"              INT NOT NULL,
 
     PRIMARY KEY (id),
-    FOREIGN KEY ("user") REFERENCES user("id")
+    FOREIGN KEY ("user") REFERENCES "user"("id")
 );
 
 
@@ -112,8 +116,6 @@ CREATE TABLE "user_hobby_mapper" (
     FOREIGN KEY (designation) REFERENCES "hobby"(designation),
     FOREIGN KEY ("user") REFERENCES "user"(id)
 );
-
-
 
 
 -- migrate:down
