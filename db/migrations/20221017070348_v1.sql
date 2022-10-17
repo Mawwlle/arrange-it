@@ -69,6 +69,7 @@ CREATE TABLE "event_tag_mapper" (
     tag                 VARCHAR(10) NOT NULL,
     event_id            INT NOT NULL,
 
+    PRIMARY KEY (tag, event_id),
     FOREIGN KEY (event_id) REFERENCES event(id),
     FOREIGN KEY (tag) REFERENCES tag(name)
 );
@@ -77,15 +78,25 @@ CREATE TABLE "user_visit_event" (
     user_id             INT NOT NULL,
     event_id            INT NOT NULL,
     visit               BOOLEAN NOT NULL DEFAULT FALSE,
-    registration        BOOLEAN NOT NULL DEFAULT TRUE,
 
+    PRIMARY KEY (user_id, event_id),
     FOREIGN KEY (user_id) REFERENCES "user"(id),
     FOREIGN KEY (event_id) REFERENCES "event"(id)
 );
 
+CREATE TABLE "user_hobby_mapper" (
+    designation         VARCHAR(15) NOT NULL,
+    "user"                INT NOT NULL,
+
+    PRIMARY KEY ("user", designation),
+    FOREIGN KEY (designation) REFERENCES "hobby"(designation),
+    FOREIGN KEY ("user") REFERENCES "user"(id)
+)
+
 -- migrate:down
 DROP TABLE "user_visit_event";
 DROP TABLE "event_tag_mapper";
+DROP TABLE "user_hobby_mapper";
 DROP TABLE "user";
 DROP TABLE "event";
 
