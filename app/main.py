@@ -1,14 +1,8 @@
 from fastapi import FastAPI
-import pkg_resources
 
 app = FastAPI()
 
 
-@app.get("/")
-async def root():
+@app.get("/hello")
+async def root() -> dict[str, str]:
     return {"message": "Hello World"}
-
-
-@app.get("/version")
-async def version():
-    return pkg_resources.get_distribution('arrange-it').version

@@ -14,7 +14,6 @@ services:
       - "--log.level=DEBUG"
       - "--api.insecure=true"
       - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
@@ -33,7 +32,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.server.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.server.entrypoints=websecure"
+      - "traefik.http.routers.server.entrypoints=web"
       - "traefik.http.routers.server.service=server"
       - "traefik.http.services.server.loadbalancer.server.port=8000"
     networks:
