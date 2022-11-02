@@ -76,5 +76,4 @@ ENV FASTAPI_ENV=production
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./app /app/
 WORKDIR /app
-CMD ["uvicorn", "--reload", "app.main:app", "--host", "0.0.0.0"]
-#CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "app.main:app"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app"]
