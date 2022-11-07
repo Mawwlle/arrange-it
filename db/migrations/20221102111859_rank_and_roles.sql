@@ -1,6 +1,6 @@
 -- migrate:up
-INSERT INTO "rank"("designation") VALUES ('a'), ('d'), ('s');
-INSERT INTO "role"("name") VALUES ('b'), ('c'), ('e');
+INSERT INTO "rank"("designation") VALUES ('organizer'), ('visitor'), ('an avid visitor');
+INSERT INTO "role"("name") VALUES ('subscriber'), ('administrator'), ('organizer');
 
 -- migrate:down
 
