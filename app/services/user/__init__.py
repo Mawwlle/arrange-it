@@ -1,17 +1,15 @@
-import asyncpg
-from fastapi import Depends, HTTPException
-from loguru import logger
+from asyncpg import Record
+from fastapi import HTTPException
 from pydantic import ValidationError
 from starlette import status
 
+from app.dependencies import database_pool
 from app.misc import get_password_hash
 from app.models import db, representation
 
 
-async def get_user_repr(
-    username: str, database: asyncpg.Connection = Depends(get_database)
-) -> representation.User:
-    record = await database.fetchrow(
+async def get_user_repr(username: str) -> representation.User:
+    record = await database_pool.fetchrow(
         'SELECT nickname, email, name, age, info, interests, rating FROM "user" WHERE nickname = $1',
         username,
     )
@@ -19,7 +17,6 @@ async def get_user_repr(
     try:
         user = representation.User(**record)
     except (TypeError, ValidationError):
-        logger.error("Im here")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found!"
         )
@@ -27,12 +24,10 @@ async def get_user_repr(
     return user
 
 
-async def set_user_in_db(
-    user: db.User, database: asyncpg.Connection = Depends(get_database)
-) -> bool:
+async def set_user_in_db(user: db.User) -> bool:
     hashed_pass = await get_password_hash(user.password)
 
-    await database.execute(
+    await database_pool.execute(
         'INSERT INTO "user" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
         user.id,
         user.nickname,
@@ -49,17 +44,20 @@ async def set_user_in_db(
     return True
 
 
-async def get_user_list(database: asyncpg.Connection = Depends(get_database)):
-    record = await database.fetch(
+async def get_user_list() -> list[Record]:
+    record = await database_pool.fetch(
         'SELECT nickname, email, name, age, info, interests, rating FROM "user"'
     )
 
     return list(record)
 
 
-async def add_user(user: db.User, database: asyncpg.Connection = Depends(get_database)):
-    return await database.execute(
-        'INSERT INTO "user"(nickname, password, email, role, name, age, info, interests, rank) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+async def add_user(user: db.User) -> Record:
+    return await database_pool.execute(
+        'INSERT INTO "user"'
+        '(nickname, password, email, role, name, age, info, interests, rank) '
+        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+
         user.nickname,
         user.password,
         user.email,

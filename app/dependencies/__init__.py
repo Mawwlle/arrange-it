@@ -9,6 +9,7 @@ from passlib.context import CryptContext
 from pydantic import ValidationError
 from starlette import status
 
+from app.dependencies.db import database_pool
 from app.models import db, representation
 from app.models.auth import TokenData
 
@@ -23,8 +24,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-async def get_user_db(username: str, database: asyncpg.Connection) -> db.User:
-    record = await database.fetchrow(
+async def get_user_db(username: str) -> db.User:
+    record = await database_pool.fetchrow(
         'SELECT * FROM "user" WHERE nickname = $1',
         username,
     )
@@ -39,30 +40,29 @@ async def get_user_db(username: str, database: asyncpg.Connection) -> db.User:
     return user
 
 
-async def get_current_user(
-    database: asyncpg.Connection, token: str = Depends(oauth2_scheme)
-) -> representation.User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+anauthorized_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> representation.User:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
 
         if username is None:
-            raise credentials_exception
+            raise anauthorized_exception
 
         token_data = TokenData(username=username)
     except JWTError:
-        raise credentials_exception
+        raise anauthorized_exception
 
-    user = await get_user_db(username=token_data.username, database=database)
+    user = await get_user_db(username=token_data.username)
 
     if user is None:
-        raise credentials_exception
+        raise anauthorized_exception
 
     return representation.User(
         nickname=user.nickname,
@@ -73,80 +73,3 @@ async def get_current_user(
         interests=user.interests,
         rating=user.rating,
     )
-
-
-async def is_user_logged_in(current_user: representation.User | None) -> None:
-    if not current_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
-class Database:
-    def __init__(
-        self, user: str, password: str, host: str, database: str, port="5432"
-    ) -> None:
-        self.user = user
-        self.password = password
-        self.host = host
-        self.port = port
-        self.database = database
-
-        self._connection_pool = None
-
-    async def connect(self) -> None:
-        if not self._connection_pool:
-            try:
-                self._connection_pool = await asyncpg.create_pool(
-                    min_size=1,
-                    max_size=40,
-                    command_timeout=60,
-                    host=self.host,
-                    port=self.port,
-                    user=self.user,
-                    password=self.password,
-                    database=self.database,
-                    ssl=False,
-                )
-                logger.info("Database pool connection opened")
-
-            except Exception as e:
-                logger.exception(e)
-
-    async def fetch_rows(self, query: str, *args) -> Record:
-        if not self._connection_pool:
-            await self.connect()
-        else:
-            con = await self._connection_pool.acquire()
-
-            try:
-                result = await con.fetch(query, *args)
-                return result
-            except Exception as e:
-                logger.exception(e)
-            finally:
-                await self._connection_pool.release(con)
-
-    async def execute(self, query: str, *args) -> Record:
-        if not self._connection_pool:
-            await self.connect()
-        else:
-            con = await self._connection_pool.acquire()
-
-            try:
-                result = await con.execute(query, *args)
-                return result
-            except Exception as e:
-                logger.exception(e)
-            finally:
-                await self._connection_pool.release(con)
-
-    async def close(self) -> None:
-        if not self._connection_pool:
-            try:
-                await self._connection_pool.close()
-                logger.info("Database pool connection closed")
-            except Exception as e:
-                logger.exception(e)

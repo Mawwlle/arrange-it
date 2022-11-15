@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api.user import auth
-from app.dependencies import get_current_user, is_user_logged_in
+from app.dependencies import anauthorized_exception, get_current_user
 from app.models import representation
 from app.services.user import get_user_list, get_user_repr
 
@@ -13,7 +13,9 @@ router.include_router(auth.router, prefix="/auth")
 async def user(
     username: str, current_user: representation.User | None = Depends(get_current_user)
 ) -> representation.User:
-    await is_user_logged_in(current_user)
+    if not current_user:
+        raise anauthorized_exception
+
     return await get_user_repr(username)
 
 
@@ -21,6 +23,7 @@ async def user(
 async def get_list(
     current_user: representation.User | None = Depends(get_current_user),
 ) -> list[representation.User]:
-    await is_user_logged_in(current_user)
+    if not current_user:
+        raise anauthorized_exception
 
     return await get_user_list()
