@@ -25,8 +25,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 async def get_user_db(username: str) -> db.User:
-    record = await database_pool.fetchrow(
-        'SELECT * FROM "user" WHERE nickname = $1',
+
+    record = await database_pool.fetch_row(
+        'SELECT * FROM "user" WHERE username = $1',
         username,
     )
 
@@ -50,6 +51,14 @@ anauthorized_exception = HTTPException(
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> representation.User:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.exceptions.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired!",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
         username: str = payload.get("sub")
 
         if username is None:
@@ -65,11 +74,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> representatio
         raise anauthorized_exception
 
     return representation.User(
-        nickname=user.nickname,
+        username=user.username,
         email=user.email,
         name=user.name,
         age=user.age,
         info=user.info,
         interests=user.interests,
         rating=user.rating,
+        role=user.role,
+        rank=user.rank,
     )

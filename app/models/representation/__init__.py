@@ -1,1 +1,1 @@
-from app.models.representation.user import User
+from app.models.representation.user import User, UserRegistration
