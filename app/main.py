@@ -1,6 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette import status
 
 from app import api
 from app.dependencies.db import database_pool
@@ -14,6 +17,7 @@ origins = [
 
 
 app = FastAPI(title="Arrange IT API. Open platform to register your meets and events.")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,3 +43,15 @@ async def shutdown_event():
     await database_pool.close()
 
     logger.info("Server Shutted down")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    exc_str = f"{exc}".replace("\n", " ").replace("   ", " ")
+    logger.error(f"{request}: {exc_str}")
+    content = {"status_code": 10422, "message": exc_str, "data": None}
+    return JSONResponse(
+        content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+    )

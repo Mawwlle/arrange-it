@@ -45,7 +45,7 @@ async def authenticate_user(username: str, password: str) -> bool | representati
         username=user.username,
         email=user.email,
         name=user.name,
-        age=user.age,
+        birthday=user.birthday,
         info=user.info,
         interests=user.interests,
         rating=user.rating,

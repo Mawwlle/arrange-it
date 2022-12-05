@@ -34,6 +34,7 @@ async def get_user_db(username: str) -> db.User:
     try:
         user = db.User(**record)
     except (TypeError, ValidationError):
+        logger.error(f"User not determined: {record}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found!"
         )
@@ -77,7 +78,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> representatio
         username=user.username,
         email=user.email,
         name=user.name,
-        age=user.age,
+        birthday=user.birthday,
         info=user.info,
         interests=user.interests,
         rating=user.rating,

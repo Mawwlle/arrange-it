@@ -8,10 +8,10 @@ class User(BaseModel):
     username: str
     password: str
     email: EmailStr
-    role: int
+    role: int | None
     name: str
-    birthday: date
-    info: str
-    interests: str
-    rank: int
+    birthday: date | None
+    info: str | None
+    interests: str | None
+    rank: int | None
     rating: int

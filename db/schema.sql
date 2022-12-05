@@ -233,7 +233,7 @@ CREATE TABLE public."user" (
     email character varying(50) NOT NULL,
     role integer,
     name character varying(25) NOT NULL,
-    birthday date NOT NULL,
+    birthday date,
     info text,
     interests character varying(15),
     rank integer,

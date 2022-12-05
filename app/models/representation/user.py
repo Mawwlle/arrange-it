@@ -6,18 +6,17 @@ from pydantic import BaseModel, EmailStr
 class User(BaseModel):
     username: str
     email: EmailStr
-    role: int
+    role: int | None
     name: str
-    birthday: date
-    info: str
-    interests: str
-    rank: int
-    rating: int
+    birthday: date | None
+    info: str | None
+    interests: str | None
+    rank: int | None
+    rating: int | None
 
 
 class UserRegistration(BaseModel):
     full_name: str
     username: str
     password: str
-    email: str
-    birthday: date
+    email: EmailStr

@@ -53,7 +53,7 @@ CREATE TABLE "user" (
     "email"             VARCHAR(50) NOT NULL,
     "role"              INT,
     "name"              VARCHAR(25) NOT NULL,
-    "birthday"          DATE NOT NULL,
+    "birthday"          DATE,
     "info"              TEXT,
     "interests"         VARCHAR(15),
     "rank"              INT,
