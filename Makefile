@@ -14,4 +14,4 @@ lint:
 	isort app --check
 	black app --check
 	pylint app | tee reports/pylint.txt
-	mypy app
+	mypy .

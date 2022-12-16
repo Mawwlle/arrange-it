@@ -1,3 +1,5 @@
+from typing import AsyncGenerator
+
 import asyncpg
 import pytest
 
@@ -38,7 +40,7 @@ async def db(user: str, host: str, password: str, database: str) -> asyncpg.conn
 
 @pytest.mark.asyncio
 @pytest.fixture
-async def tags(db) -> list[str]:
+async def tags(db) -> AsyncGenerator[list[str], None]:
     tags = ["Кинотеатр", "Аниме", "Театр"]
 
     await db.execute("INSERT INTO tag VALUES ($1), ($2), ($3)", tags[0], tags[1], tags[2])
