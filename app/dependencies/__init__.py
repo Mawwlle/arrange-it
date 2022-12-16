@@ -1,6 +1,4 @@
-import asyncpg
 import jwt
-from asyncpg import Record
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
@@ -10,8 +8,8 @@ from pydantic import ValidationError
 from starlette import status
 
 from app.dependencies.db import database
-from app.models import db, representation
 from app.models.auth import TokenData
+from app.models.user import User, UserBaseInfo, UserDBMapping, UserMetaInfo
 
 # Для получения такой строки:
 # openssl rand -hex 32
@@ -24,7 +22,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-async def get_user_db(username: str) -> db.User:
+async def get_user_db(username: str) -> UserDBMapping:
     async with database.pool.acquire() as connection:
         async with connection.transaction():
             record = await database.pool.fetchrow(
@@ -32,41 +30,56 @@ async def get_user_db(username: str) -> db.User:
                 username,
             )
 
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found in database!"
+        )
+
     try:
-        user = db.User(**record)
+        user_base_info = UserBaseInfo(
+            full_name=record.get("name"),
+            username=record.get("username"),
+            email=record.get("email"),
+        )
+        user_meta_info = UserMetaInfo(
+            role=record.get("role"),
+            birthday=record.get("birhday"),
+            info=record.get("info"),
+            interests=record.get("interests"),
+            rank=record.get("rank"),
+            rating=record.get("rating"),
+        )
+        password = record.get("password")
+        user = UserDBMapping(info=user_base_info, meta=user_meta_info, password=password)
     except (TypeError, ValidationError) as err:
-        msg = f"User not determined! Please sign up first."
+        msg = f"User: {username} not determined! "
         logger.error(msg)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg) from err
 
     return user
 
 
-anauthorized_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
-)
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> representation.User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except jwt.exceptions.ExpiredSignatureError:
+    except jwt.exceptions.ExpiredSignatureError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token expired!",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from err
 
     try:
-        username: str = payload.get("sub")
+        username = payload.get("sub")
 
         if username is None:
             raise anauthorized_exception
 
         token_data = TokenData(username=username)
-    except JWTError:
+    except JWTError as error:
+        raise anauthorized_exception from error
+
+    if not token_data.username:
         raise anauthorized_exception
 
     user = await get_user_db(username=token_data.username)
@@ -74,14 +87,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> representatio
     if user is None:
         raise anauthorized_exception
 
-    return representation.User(
-        username=user.username,
-        email=user.email,
-        name=user.name,
-        birthday=user.birthday,
-        info=user.info,
-        interests=user.interests,
-        rating=user.rating,
-        role=user.role,
-        rank=user.rank,
-    )
+    return User(info=user.info, meta=user.meta)
+
+
+async def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+async def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+anauthorized_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)

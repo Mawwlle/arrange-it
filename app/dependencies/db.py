@@ -2,6 +2,7 @@
 import asyncpg
 from loguru import logger
 
+from app.exceptions import DatabaseNotInitializedException
 from app.settings import settings
 
 logger.info("Start initializing db connection pool")
@@ -10,12 +11,20 @@ logger.info("Start initializing db connection pool")
 class DatabaseConnection:
     """Управление подключениями к бд"""
 
-    pool: asyncpg.Pool | None = None
+    __pool: asyncpg.Pool | None = None
+
+    @property
+    def pool(self) -> asyncpg.Pool:
+        """Свойство для доступа к пулу коннектов"""
+        if not self.__pool:
+            raise DatabaseNotInitializedException("Database connection pool is not initialized!")
+
+        return self.__pool
 
     async def init_pool(self) -> asyncpg.Pool:
         """Инициализация пула подключений к базе данных"""
 
-        self.pool = await asyncpg.create_pool(
+        self.__pool = await asyncpg.create_pool(
             user=settings.POSTGRES_USER,
             password=settings.POSTGRES_PASSWORD,
             database=settings.POSTGRES_DB,
@@ -23,7 +32,9 @@ class DatabaseConnection:
             max_size=100,
         )
 
-        return self.pool
+        return (
+            self.pool
+        )  # доступ через свойство для дополнительной проверки (если не инициализация неуспешна будет ошибка)
 
 
 database = DatabaseConnection()

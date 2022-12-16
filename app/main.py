@@ -8,7 +8,7 @@ from starlette import status
 
 from app import api
 from app.dependencies.db import database
-from app.exceptions import DatabaseNotFoundException
+from app.exceptions import DatabaseNotInitializedException
 
 origins = [
     "http://localhost",
@@ -36,10 +36,8 @@ async def startup_event() -> None:
     """Пул коннектов создаётся на уровне инициализации"""
 
     if not await database.init_pool():
-        logger.critical(
-            f"Database not found! Please check credentials and database status"
-        )
-        raise DatabaseNotFoundException(f"Database not initialized")
+        logger.critical(f"Database not found! Please check credentials and database status")
+        raise DatabaseNotInitializedException(f"Database not initialized")
     else:
         logger.info("Server Started")
 
@@ -61,6 +59,4 @@ async def validation_exception_handler(
     exc_str = f"{exc}".replace("\n", " ").replace("   ", " ")
     logger.error(f"{request}: {exc_str}")
     content = {"status_code": 422, "message": exc_str, "data": None}
-    return JSONResponse(
-        content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
-    )
+    return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)

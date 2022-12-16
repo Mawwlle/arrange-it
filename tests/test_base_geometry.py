@@ -28,14 +28,10 @@ async def database() -> str:
 
 @pytest.mark.asyncio
 @pytest.fixture
-async def db(
-    user: str, host: str, password: str, database: str
-) -> asyncpg.connection.Connection:
+async def db(user: str, host: str, password: str, database: str) -> asyncpg.connection.Connection:
     """Fixture to set up the connection to database"""
 
-    conn = await asyncpg.connect(
-        user=user, password=password, database=database, host=host
-    )
+    conn = await asyncpg.connect(user=user, password=password, database=database, host=host)
     yield conn
     await conn.close()
 
@@ -45,9 +41,7 @@ async def db(
 async def tags(db) -> list[str]:
     tags = ["Кинотеатр", "Аниме", "Театр"]
 
-    await db.execute(
-        "INSERT INTO tag VALUES ($1), ($2), ($3)", tags[0], tags[1], tags[2]
-    )
+    await db.execute("INSERT INTO tag VALUES ($1), ($2), ($3)", tags[0], tags[1], tags[2])
     yield tags
 
     for tag in tags:

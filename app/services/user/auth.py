@@ -1,3 +1,4 @@
+"""Модуль отвечающий за идентификацию пользователей"""
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -5,14 +6,11 @@ import jwt
 from fastapi import HTTPException, status
 from loguru import logger
 
-from app.dependencies import ALGORITHM, SECRET_KEY, get_user_db
-from app.misc import verify_password
-from app.models import representation
+from app.dependencies import ALGORITHM, SECRET_KEY, get_user_db, verify_password
+from app.models.user import User
 
 
-async def create_access_token(
-    data: dict[str, Any], expires_delta: timedelta | None = None
-) -> str:
+async def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     """Создание токена доступа"""
 
     logger.info("Start creating access token")
@@ -30,7 +28,7 @@ async def create_access_token(
     return encoded_jwt
 
 
-async def authenticate_user(username: str, password: str) -> representation.User:
+async def authenticate_user(username: str, password: str) -> User:
     """Идентификация пользователя"""
 
     logger.info("Starting user auth")
@@ -48,17 +46,11 @@ async def authenticate_user(username: str, password: str) -> representation.User
         raise ValueError("Invalid password!")
 
     logger.info(
-        f"User: {user.username}, {user.name}, {user.email} found in database and password is correct!"
+        f"User: \
+            {user.info.username}, \
+            {user.info.full_name}, \
+            {user.info.email} \
+        found in database and password is correct!"
     )
 
-    return representation.User(
-        username=user.username,
-        email=user.email,
-        name=user.name,
-        birthday=user.birthday,
-        info=user.info,
-        interests=user.interests,
-        rating=user.rating,
-        role=user.role,
-        rank=user.rank,
-    )
+    return User(info=user.info, meta=user.meta)

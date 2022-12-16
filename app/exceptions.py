@@ -1,4 +1,4 @@
-class DatabaseNotFoundException(Exception):
+class DatabaseNotInitializedException(Exception):
     """Вызывается когда база данных не инициализировалась"""
 
 

@@ -1,4 +1,6 @@
-from app.dependencies import database
+"""CRUD над ролями"""
+
+from app.dependencies.db import database
 
 
 async def create(role: str) -> None:
