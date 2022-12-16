@@ -1,4 +1,4 @@
-from app.dependencies import database_pool
+from app.dependencies import database
 
 
 async def create(role: str) -> None:
@@ -7,4 +7,5 @@ async def create(role: str) -> None:
     :param role: role name
     """
 
-    await database_pool.execute('INSERT INTO "role"(name) VALUES ($1)', role)
+    async with database.pool.acquire() as connection:
+        await connection.execute('INSERT INTO "role"(name) VALUES ($1)', role)

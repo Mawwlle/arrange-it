@@ -1,4 +1,4 @@
-from app.dependencies.db import database_pool
+from app.dependencies.db import database
 
 
 async def create(rank: str) -> None:
@@ -7,4 +7,8 @@ async def create(rank: str) -> None:
     :param rank: rank name
     """
 
-    await database_pool.execute('INSERT INTO "rank"(designation) VALUES ($1)', rank)
+    async with database.pool.acquire() as connection:
+        async with connection.transaction():
+            await connection.execute(
+                'INSERT INTO "rank"(designation) VALUES ($1)', rank
+            )

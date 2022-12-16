@@ -1,3 +1,4 @@
+import asyncpg
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,7 +7,8 @@ from loguru import logger
 from starlette import status
 
 from app import api
-from app.dependencies.db import database_pool
+from app.dependencies.db import database
+from app.exceptions import DatabaseNotFoundException
 
 origins = [
     "http://localhost",
@@ -30,17 +32,22 @@ app.include_router(api.router)
 
 
 @app.on_event("startup")
-async def startup_event():
-    logger.info("Connecting to db")
-    await database_pool.connect()
+async def startup_event() -> None:
+    """Пул коннектов создаётся на уровне инициализации"""
 
-    logger.info("Connected")
-    logger.info("Server Started")
+    if not await database.init_pool():
+        logger.critical(
+            f"Database not found! Please check credentials and database status"
+        )
+        raise DatabaseNotFoundException(f"Database not initialized")
+    else:
+        logger.info("Server Started")
 
 
 @app.on_event("shutdown")
-async def shutdown_event():
-    await database_pool.close()
+async def shutdown_event() -> None:
+    """Закрытие пула подключений"""
+    await database.pool.close()
 
     logger.info("Server Shutted down")
 
@@ -49,9 +56,11 @@ async def shutdown_event():
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
+    """Проприетарный обработчик ошибок"""
+
     exc_str = f"{exc}".replace("\n", " ").replace("   ", " ")
     logger.error(f"{request}: {exc_str}")
-    content = {"status_code": 10422, "message": exc_str, "data": None}
+    content = {"status_code": 422, "message": exc_str, "data": None}
     return JSONResponse(
         content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
     )

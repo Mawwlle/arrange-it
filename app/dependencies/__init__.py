@@ -9,11 +9,11 @@ from passlib.context import CryptContext
 from pydantic import ValidationError
 from starlette import status
 
-from app.dependencies.db import database_pool
+from app.dependencies.db import database
 from app.models import db, representation
 from app.models.auth import TokenData
 
-# to get a string like this run:
+# Для получения такой строки:
 # openssl rand -hex 32
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
@@ -25,19 +25,19 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 async def get_user_db(username: str) -> db.User:
-
-    record = await database_pool.fetch_row(
-        'SELECT * FROM "user" WHERE username = $1',
-        username,
-    )
+    async with database.pool.acquire() as connection:
+        async with connection.transaction():
+            record = await database.pool.fetchrow(
+                'SELECT * FROM "user" WHERE username = $1',
+                username,
+            )
 
     try:
         user = db.User(**record)
-    except (TypeError, ValidationError):
-        logger.error(f"User not determined: {record}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found!"
-        )
+    except (TypeError, ValidationError) as err:
+        msg = f"User not determined! Please sign up first."
+        logger.error(msg)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg) from err
 
     return user
 

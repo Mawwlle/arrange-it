@@ -12,20 +12,24 @@ router = APIRouter(tags=["user"])
 router.include_router(auth.router)
 
 
-@router.get("/user")
+@router.get("/user/{username}")
 async def user(
     username: str, current_user: representation.User | None = Depends(get_current_user)
 ) -> representation.User:
+    """Получить конкретного пользователя"""
+
     if not current_user:
         raise anauthorized_exception
 
     return await get_repr(username)
 
 
-@router.get("/user_list")
-async def get_user_list(
+@router.get("/user")
+async def get_users(
     current_user: representation.User | None = Depends(get_current_user),
 ) -> list[Record]:
+    """Получить всех пользователей"""
+
     if not current_user:
         raise anauthorized_exception
 
