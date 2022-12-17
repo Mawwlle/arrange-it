@@ -1,7 +1,6 @@
 """API для ролей"""
 
-from fastapi import APIRouter, status
-from fastapi.params import Depends
+from fastapi import APIRouter, Depends, status
 
 from app import services
 from app.dependencies import anauthorized_exception, get_current_user
@@ -13,7 +12,7 @@ router = APIRouter(tags=["role"])
 @router.post("/role", status_code=status.HTTP_201_CREATED)
 async def create_role(
     role: str,
-    current_user: User | None = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> None:
     """Создание новой роли"""
 

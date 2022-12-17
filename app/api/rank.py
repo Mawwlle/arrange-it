@@ -12,7 +12,7 @@ router = APIRouter(tags=["rank"])
 @router.post("/rank", status_code=status.HTTP_201_CREATED)
 async def create_rank(
     rank: str,
-    current_user: User | None = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> None:
     """Создание ранга в базе данных"""
 
