@@ -58,6 +58,12 @@ async def create_user(user: UserRegistration) -> int:
                 detail="User already exists!",
             ) from err
 
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail="Something went wrong while writing to database! ID of new entity did not created! Please try later!",
+        )
+
     try:
         user_id = result["id"]
     except (KeyError, TypeError, ValueError) as err:
