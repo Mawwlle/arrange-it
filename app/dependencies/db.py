@@ -13,17 +13,17 @@ logger.info("Start initializing db connection pool")
 class DatabaseConnection:
     """Управление подключениями к бд"""
 
-    __pool: asyncpg.Pool | None = None
+    __pool: asyncpg.Pool[asyncpg.Record] | None = None
 
     @property
-    def pool(self) -> asyncpg.Pool:
+    def pool(self) -> asyncpg.Pool[asyncpg.Record]:
         """Свойство для доступа к пулу коннектов"""
         if not self.__pool:
             raise DatabaseNotInitializedException("Database connection pool is not initialized!")
 
         return self.__pool
 
-    async def init_pool(self) -> asyncpg.Pool:
+    async def init_pool(self) -> asyncpg.Pool[asyncpg.Record]:
         """Инициализация пула подключений к базе данных"""
 
         self.__pool = await asyncpg.create_pool(
