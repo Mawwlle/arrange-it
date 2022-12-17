@@ -8,7 +8,9 @@ class RegistrationResponse(BaseModel):
     id: int
 
 
-class VerificationResponse(BaseModel):
-    """Ответ на регистрацию"""
+class UserResponse(BaseModel):
+    """Ответ на удаление пользователей"""
 
     message: str
+    username: str
+    id: int

@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette import status
 
+from app import services
 from app.dependencies import ACCESS_TOKEN_EXPIRE_MINUTES
 from app.models.responses import RegistrationResponse
 from app.models.user import UserRegistration
-from app.services.user import create_user
 from app.services.user.auth import authenticate_user, create_access_token
 
 router = APIRouter(tags=["auth"])
@@ -24,7 +24,8 @@ async def jwt_auth(
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = await create_access_token(
-        data={"sub": user.info.username}, expires_delta=access_token_expires
+        data={"sub": user.info.username, "scopes": form_data.scopes},
+        expires_delta=access_token_expires,
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -36,6 +37,6 @@ async def register_a_new_user(
 ) -> RegistrationResponse:
     """Регистрация нового пользователя"""
 
-    user_id = await create_user(user)
+    user_id = await services.user.create(user)
 
     return RegistrationResponse(message="User created successfully", id=user_id)

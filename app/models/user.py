@@ -20,6 +20,7 @@ class UserMetaInfo(BaseModel):
     interests: str | None
     rank: int | None
     rating: int | None
+    verified: bool
 
 
 class UserDBMapping(BaseModel):

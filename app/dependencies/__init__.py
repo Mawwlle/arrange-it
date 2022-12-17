@@ -1,6 +1,6 @@
 import jwt
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import JWTError
 from loguru import logger
 from passlib.context import CryptContext
@@ -18,8 +18,17 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="token",
+    scopes={
+        "subscriber": "Can subscribe to event",
+        "administrator": "Verification",
+        "organizer": "Organize events",
+        "low": "Low rank. Not prior events",
+        "advance": "Already good in this. All events",
+        "high": "Subscribes to private events",
+    },
+)
 
 
 async def get_user_db(username: str) -> UserDBMapping:
@@ -48,6 +57,7 @@ async def get_user_db(username: str) -> UserDBMapping:
             interests=record.get("interests"),
             rank=record.get("rank"),
             rating=record.get("rating"),
+            verified=record.get("verified"),
         )
         password = record.get("password")
         user = UserDBMapping(info=user_base_info, meta=user_meta_info, password=password)
@@ -59,33 +69,47 @@ async def get_user_db(username: str) -> UserDBMapping:
     return user
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except jwt.exceptions.ExpiredSignatureError as err:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired!",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from err
+async def get_current_user(
+    security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)
+) -> User:
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = "Bearer"
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": authenticate_value},
+    )
 
     try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
 
         if username is None:
-            raise anauthorized_exception
+            raise credentials_exception
 
-        token_data = TokenData(username=username)
-    except JWTError as error:
-        raise anauthorized_exception from error
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
+    except (JWTError, ValidationError):
+        raise credentials_exception
 
     if not token_data.username:
-        raise anauthorized_exception
+        raise credentials_exception
 
     user = await get_user_db(username=token_data.username)
 
     if user is None:
         raise anauthorized_exception
+
+    for scope in security_scopes.scopes:
+        if scope not in token_data.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
 
     return User(info=user.info, meta=user.meta)
 

@@ -7,21 +7,23 @@ from app.settings import settings
 
 logger.info("Start initializing db connection pool")
 
+"""Игнорируются типы так как непонятно что тут должно быть"""
+
 
 class DatabaseConnection:
     """Управление подключениями к бд"""
 
-    __pool: asyncpg.Pool[asyncpg.Record] | None = None
+    __pool: asyncpg.Pool | None = None
 
     @property
-    def pool(self) -> asyncpg.Pool[asyncpg.Record]:
+    def pool(self) -> asyncpg.Pool:
         """Свойство для доступа к пулу коннектов"""
         if not self.__pool:
             raise DatabaseNotInitializedException("Database connection pool is not initialized!")
 
         return self.__pool
 
-    async def init_pool(self) -> asyncpg.Pool[asyncpg.Record]:
+    async def init_pool(self) -> asyncpg.Pool:
         """Инициализация пула подключений к базе данных"""
 
         self.__pool = await asyncpg.create_pool(
