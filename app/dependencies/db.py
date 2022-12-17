@@ -7,6 +7,8 @@ from app.settings import settings
 
 logger.info("Start initializing db connection pool")
 
+"""Игнорируются типы так как непонятно что тут должно быть"""
+
 
 class DatabaseConnection:
     """Управление подключениями к бд"""

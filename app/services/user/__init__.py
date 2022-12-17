@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.dependencies import get_password_hash, get_user_db
 from app.dependencies.db import database
+from app.models.responses import UserResponse
 from app.models.user import User, UserRegistration
 
 
@@ -34,7 +35,7 @@ async def get_list() -> list[Record]:
     return list(record)
 
 
-async def create_user(user: UserRegistration) -> int:
+async def create(user: UserRegistration) -> int:
     """Создание пользователя в базе данных"""
 
     hashed_pass = await get_password_hash(user.password)
@@ -81,3 +82,29 @@ async def create_user(user: UserRegistration) -> int:
             status_code=status.HTTP_418_IM_A_TEAPOT,
             detail="Possible changes in API response",
         ) from err
+
+
+async def delete(username: str) -> UserResponse:
+    try:
+        async with database.pool.acquire() as connection:
+            id = await connection.fetchval(
+                'DELETE FROM "user" WHERE "username"=$1 RETURNING id', username
+            )
+    except asyncpg.PostgresError as err:
+        logger.error(f"Error while deleting user {repr(err)}")
+        raise
+
+    return UserResponse(message="User deleted successfully", username=username, id=id)
+
+
+async def verify(username: str) -> UserResponse:
+    try:
+        async with database.pool.acquire() as connection:
+            id = await connection.fetchval(
+                'UPDATE "user" SET "verified"=TRUE WHERE "username"=$1 RETURNING id', username
+            )
+    except asyncpg.PostgresError as err:
+        logger.error(f"Error while deleting user {repr(err)}")
+        raise
+
+    return UserResponse(message="User verified successfully", username=username, id=id)
