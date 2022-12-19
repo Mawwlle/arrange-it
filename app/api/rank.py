@@ -35,7 +35,7 @@ async def get_rank(
     return await services.rank.get_by(id)
 
 
-@router.get("/rank", status_code=status.HTTP_200_OK)
+@router.get("/ranks", status_code=status.HTTP_200_OK)
 async def get_list_rank() -> list[Record]:
     """Получение ранга из базы данных по ID (общедоступно)"""
 
