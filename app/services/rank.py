@@ -29,10 +29,8 @@ async def get_by(id: int) -> Any | None:
 
     async with database.pool.acquire() as connection:
         async with connection.transaction():
-            result = await connection.fetchval(
-                'SELECT  name, description FROM "rank" WHERE id=$1', id
-            )
-    return result
+            result = await connection.fetch('SELECT * FROM "rank" WHERE id=$1', id)
+    return result[0]
 
 
 async def get_list() -> list[Record]:
@@ -42,8 +40,7 @@ async def get_list() -> list[Record]:
     """
 
     async with database.pool.acquire() as connection:
-        async with connection.transaction():
-            result = await connection.fetch('SELECT  name, description FROM "rank"', id)
+        result = await connection.fetch('SELECT * FROM "rank"')
     return result
 
 
