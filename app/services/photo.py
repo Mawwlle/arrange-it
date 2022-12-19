@@ -51,7 +51,7 @@ async def get(id: int) -> Tuple[bytes, str]:
     async with database.pool.acquire() as connection:
         logger.debug(f"Uploading photo")
         try:
-            result = await connection.fetchval(
+            result = await connection.fetchrow(
                 'SELECT "photo", "media_type" FROM "photo" WHERE id=$1', id
             )
         except asyncpg.PostgresError as err:

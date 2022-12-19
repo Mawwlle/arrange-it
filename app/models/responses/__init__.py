@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -14,3 +16,10 @@ class UserResponse(BaseModel):
     message: str
     username: str
     id: int
+
+
+class CommentResponse(BaseModel):
+    text: str
+    time: datetime
+    user: int
+    event: int

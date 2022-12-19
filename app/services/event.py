@@ -1,5 +1,4 @@
 """CRUD над событиями"""
-from datetime import datetime
 
 import asyncpg
 from fastapi import HTTPException, status
@@ -29,7 +28,7 @@ async def create(username: str, event: Event) -> int:
                     organizer_id,
                     place_id,
                     event.description,
-                    event.date,
+                    event.time.replace(tzinfo=None),
                 )
             except asyncpg.PostgresError as err:
                 logger.error(f"Failed to create event! {repr(err)}")
@@ -81,12 +80,12 @@ async def get(id: int) -> Event:
 
     place = record.get("place")
     description = record.get("description")
-    date = record.get("date")
+    time = record.get("date")
 
-    if any(not value for value in [date, description, place]):
+    if any(not value for value in [time, description, place]):
         raise ValueError("Incorrect value!")
 
-    return Event(place=place, description=description, date=date)
+    return Event(place=place, description=description, time=time)
 
 
 async def get_list() -> list[asyncpg.Record]:

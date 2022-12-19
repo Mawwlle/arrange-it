@@ -20,7 +20,7 @@ async def check(current_user: User, username: str, err_msg: str) -> None:
     if current_user.info.username == username:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="You are cannot delete your account!",
+            detail="You are cannot change your account!",
         )
 
 

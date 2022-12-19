@@ -23,17 +23,11 @@ class Place(BaseModel):
     point: Point
 
 
-class Comment(BaseModel):
-    text: str
-    user: User
-    date: date
-
-
 class Event(BaseModel):
     """Дополнительная информация о пользователе"""
 
     place: str
-    date: date
+    time: datetime
     description: str
 
 

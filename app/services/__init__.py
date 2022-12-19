@@ -1,2 +1,2 @@
 """Инициализация пакетов сервисов"""
-from app.services import event, photo, rank, role, user
+from app.services import comment, event, photo, rank, role, user
