@@ -72,7 +72,6 @@ async def user_visited_event(
         event_id=event, current_user=current_user
     )  # только организатор может это подтвердить
 
-    # return await user.delete(username)
     await user.upgrade_rating(current_user)
 
     return await user.event.visited(event_id=event, user=current_user)
