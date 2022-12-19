@@ -4,10 +4,11 @@ from asyncpg import Record
 from fastapi import HTTPException, status
 from loguru import logger
 
-from app.dependencies import get_password_hash, get_user_db
+from app.dependencies import get_password_hash, get_user_db, returning_id
 from app.dependencies.db import database
 from app.models.responses import UserResponse
 from app.models.user import User, UserRegistration
+from app.services.user import misc
 
 
 async def get_repr(username: str) -> User:
@@ -59,29 +60,7 @@ async def create(user: UserRegistration) -> int:
                 detail="User already exists!",
             ) from err
 
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_418_IM_A_TEAPOT,
-            detail="Something went wrong while writing to database! ID of new entity did not created! Please try later!",
-        )
-
-    try:
-        user_id = result["id"]
-    except (KeyError, TypeError, ValueError) as err:
-        logger.critical(err)
-        raise HTTPException(
-            status_code=status.HTTP_418_IM_A_TEAPOT,
-            detail=err,
-        ) from err
-
-    try:
-        return int(user_id)
-    except TypeError as err:
-        logger.critical("Incorrect type of returning value")
-        raise HTTPException(
-            status_code=status.HTTP_418_IM_A_TEAPOT,
-            detail="Possible changes in API response",
-        ) from err
+    return await returning_id(result)
 
 
 async def delete(username: str) -> UserResponse:
@@ -106,5 +85,8 @@ async def verify(username: str) -> UserResponse:
     except asyncpg.PostgresError as err:
         logger.error(f"Error while deleting user {repr(err)}")
         raise
+
+    if not id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not exist!")
 
     return UserResponse(message="User verified successfully", username=username, id=id)

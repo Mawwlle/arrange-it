@@ -43,7 +43,11 @@ async def authenticate_user(username: str, password: str) -> User:
         )
 
     if not await verify_password(password, user.password):
-        raise ValueError("Invalid password!")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password!",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     logger.info(
         f"User: \

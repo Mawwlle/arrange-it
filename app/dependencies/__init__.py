@@ -1,3 +1,4 @@
+import asyncpg
 import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
@@ -92,7 +93,7 @@ async def get_current_user(
 
         token_scopes = payload.get("scopes", [])
         token_data = TokenData(scopes=token_scopes, username=username)
-    except (JWTError, ValidationError):
+    except (JWTError, ValidationError, jwt.exceptions.ExpiredSignatureError):
         raise credentials_exception
 
     if not token_data.username:
@@ -127,3 +128,29 @@ anauthorized_exception = HTTPException(
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"},
 )
+
+
+async def returning_id(record: asyncpg.Record) -> int:
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Something went wrong while writing to database! ID of new entity did not created! Please try later!",
+        )
+
+    try:
+        user_id = record["id"]
+    except (KeyError, TypeError, ValueError) as err:
+        logger.critical(err)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=err,
+        ) from err
+
+    try:
+        return int(user_id)
+    except TypeError as err:
+        logger.critical("Incorrect type of returning value")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Possible changes in API response",
+        ) from err
