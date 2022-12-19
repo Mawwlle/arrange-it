@@ -3,10 +3,13 @@
 # удаление пользователей
 
 
+from urllib import response
+
 from fastapi import APIRouter, HTTPException, Security, status
 
+from app import services
 from app.dependencies import anauthorized_exception, get_current_user
-from app.models.responses import UserResponse
+from app.models.responses import BaseResponse, UserResponse
 from app.models.user import User
 from app.services import user
 
@@ -24,7 +27,7 @@ async def check(current_user: User, username: str, err_msg: str) -> None:
         )
 
 
-@router.delete("/user")
+@router.delete("/user", status_code=status.HTTP_200_OK)
 async def deleting_user(
     username: str,
     current_user: User = Security(get_current_user, scopes=["administrator"]),
@@ -36,7 +39,7 @@ async def deleting_user(
     return await user.delete(username)
 
 
-@router.patch("/verify")
+@router.patch("/verify", status_code=status.HTTP_200_OK)
 async def verify_user(
     username: str, current_user: User = Security(get_current_user, scopes=["administrator"])
 ) -> UserResponse:
@@ -47,9 +50,13 @@ async def verify_user(
     return await user.verify(username)
 
 
-# @router.post("/verify/event")
-# async def verify_event(
-#     event: int, current_user: User | None = Depends(get_current_user)
-# ) -> VerificationResponse:
-#     """Верификация мероприятий"""
-#     pass
+@router.patch("/verify/event", status_code=status.HTTP_200_OK)
+async def verify_event(
+    id: int, current_user: User = Security(get_current_user, scopes=["administrator"])
+) -> BaseResponse:
+    """Верификация мероприятий"""
+
+    if not current_user:
+        raise anauthorized_exception
+
+    return await services.user.verify_event(id)

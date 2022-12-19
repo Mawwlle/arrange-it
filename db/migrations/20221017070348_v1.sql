@@ -94,6 +94,8 @@ CREATE TABLE "event" (
     "photo"             INT,
     "state"             STATE DEFAULT 'pending approval',
     "date"              TIMESTAMP NOT NULL,
+    "verified"          BOOLEAN NOT NULL DEFAULT FALSE,
+
 
     PRIMARY KEY ("id"),
     UNIQUE ("photo"),

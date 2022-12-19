@@ -63,7 +63,8 @@ CREATE TABLE public.event (
     description text,
     photo integer,
     state public.state DEFAULT 'pending approval'::public.state,
-    date timestamp without time zone NOT NULL
+    date timestamp without time zone NOT NULL,
+    verified boolean DEFAULT false NOT NULL
 );
 
 

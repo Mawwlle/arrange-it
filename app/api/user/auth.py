@@ -7,7 +7,7 @@ from starlette import status
 
 from app import services
 from app.dependencies import ACCESS_TOKEN_EXPIRE_MINUTES
-from app.models.responses import RegistrationResponse
+from app.models.responses import BaseResponse
 from app.models.user import UserRegistration
 from app.services.user.auth import authenticate_user, create_access_token
 
@@ -34,9 +34,9 @@ async def jwt_auth(
 @router.post("/sign_up", status_code=status.HTTP_201_CREATED)
 async def register_a_new_user(
     user: UserRegistration,
-) -> RegistrationResponse:
+) -> BaseResponse:
     """Регистрация нового пользователя"""
 
     user_id = await services.user.create(user)
 
-    return RegistrationResponse(message="User created successfully", id=user_id)
+    return BaseResponse(message="User created successfully", id=user_id)

@@ -2,7 +2,7 @@
 from asyncpg import Record
 from fastapi import APIRouter, Depends
 
-from app.api.user import admin, auth
+from app.api.user import admin, auth, registration
 from app.dependencies import anauthorized_exception, get_current_user
 from app.models.user import User
 from app.services.user import get_list, get_repr
@@ -10,6 +10,7 @@ from app.services.user import get_list, get_repr
 router = APIRouter(tags=["user"])
 router.include_router(auth.router)
 router.include_router(admin.router)
+router.include_router(registration.router)
 
 
 @router.get("/user/{username}")

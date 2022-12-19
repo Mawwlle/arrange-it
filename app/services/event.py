@@ -1,5 +1,7 @@
 """CRUD над событиями"""
 
+from datetime import date, datetime
+
 import asyncpg
 from fastapi import HTTPException, status
 from loguru import logger
@@ -121,3 +123,22 @@ async def get_organizer_id_by(event_id: int) -> int:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=err,
                 ) from err
+
+
+async def get_event_date(event_id: int) -> date:
+    """Getting organizer of event
+
+    :param event_id: id of the event
+    """
+
+    async with database.pool.acquire() as connection:
+        try:
+            result = await connection.fetchval('SELECT "date" FROM "event" WHERE "id"=$1', event_id)
+        except asyncpg.PostgresError as err:
+            logger.error(f"Not found in database! {err}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Event not found!",
+            )
+
+    return result.date()

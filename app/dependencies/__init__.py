@@ -25,9 +25,6 @@ oauth2_scheme = OAuth2PasswordBearer(
         "subscriber": "Can subscribe to event",
         "administrator": "Verification",
         "organizer": "Organize events",
-        "low": "Low rank. Not prior events",
-        "advance": "Already good in this. All events",
-        "high": "Subscribes to private events",
     },
 )
 

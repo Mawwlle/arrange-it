@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class RegistrationResponse(BaseModel):
+class BaseResponse(BaseModel):
     """Ответ на регистрацию"""
 
     message: str

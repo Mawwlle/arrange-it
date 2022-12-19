@@ -22,7 +22,10 @@ async def create_event(
     event: Event,
     current_user: User = Security(get_current_user, scopes=["organizer"]),
 ) -> int:
-    """Создание события в базе данных"""
+    """Создание события в базе данных
+
+    Я не успеваю создать валидации по дате. Пожалуйста не надо писать сюда ничего плохого :(((
+    """
 
     await check(current_user, err_msg="Can't create event. User not verified!")
 
