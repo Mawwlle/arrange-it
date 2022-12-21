@@ -23,11 +23,7 @@ async def subscription_to_event(
     if not current_user:
         raise anauthorized_exception
 
-    if await is_user_owner(current_user, event_id=id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can't subscribe to this event. You are organizer of it!",
-        )
+    await is_user_owner(current_user, event_id=id)
 
     return await services.user.event.subscribe(user=current_user, event_id=id)
 
@@ -42,11 +38,7 @@ async def unsubscribe_from_event(
     if not current_user:
         raise anauthorized_exception
 
-    if await is_user_owner(current_user, event_id=id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can't subscribe to this event. You are organizer of it!",
-        )
+    await is_user_owner(current_user, event_id=id)
 
     now = datetime.now().date()
     event_date = await services.event.get_event_date(id)

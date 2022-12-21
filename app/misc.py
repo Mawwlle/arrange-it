@@ -22,6 +22,6 @@ async def is_user_owner(current_user: User, event_id: int) -> None:
 
     if user_id != organizer_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can't delete someone else's event! The user can only delete their own events",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You can't change someone else's event! The user can only chage their own events",
         )
