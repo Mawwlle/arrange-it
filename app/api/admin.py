@@ -1,10 +1,3 @@
-# верификация пользователей
-# верификация мероприятий
-# удаление пользователей
-
-
-from urllib import response
-
 from fastapi import APIRouter, HTTPException, Security, status
 
 from app import services
@@ -27,7 +20,7 @@ async def check(current_user: User, username: str, err_msg: str) -> None:
         )
 
 
-@router.delete("/user", status_code=status.HTTP_200_OK)
+@router.delete("/user/{username}", status_code=status.HTTP_200_OK)
 async def deleting_user(
     username: str,
     current_user: User = Security(get_current_user, scopes=["administrator"]),
@@ -39,7 +32,7 @@ async def deleting_user(
     return await user.delete(username)
 
 
-@router.patch("/verify", status_code=status.HTTP_200_OK)
+@router.patch("/verify/user/{username}", status_code=status.HTTP_200_OK)
 async def verify_user(
     username: str, current_user: User = Security(get_current_user, scopes=["administrator"])
 ) -> UserResponse:
@@ -50,7 +43,7 @@ async def verify_user(
     return await user.verify(username)
 
 
-@router.patch("/verify/event", status_code=status.HTTP_200_OK)
+@router.patch("/verify/event/{id}", status_code=status.HTTP_200_OK)
 async def verify_event(
     id: int, current_user: User = Security(get_current_user, scopes=["administrator"])
 ) -> BaseResponse:

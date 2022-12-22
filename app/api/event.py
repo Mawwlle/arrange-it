@@ -40,7 +40,11 @@ async def delete_event(
     """Удаление события из базы данных"""
 
     await check(current_user, err_msg="Can't delete event. User not verified!")
-    await is_user_owner(current_user, event_id=id)
+    if not await is_user_owner(current_user, event_id=id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are can't delete this event!",
+        )
 
     return await services.event.delete(id)
 
@@ -78,7 +82,11 @@ async def upload_picture_to_event(
     if not current_user:
         raise anauthorized_exception
 
-    await is_user_owner(current_user, event_id=event_id)
+    if await is_user_owner(current_user, event_id=event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are can't upload photo to this event!. You are not organizator!",
+        )
 
     if file.content_type not in allowed_types:
         raise HTTPException(

@@ -129,18 +129,17 @@ async def downgrade_rating(user: User, k: int = 1, limit: int = 100) -> BaseResp
     return BaseResponse(message="User downgraded successfully!", id=user_id)
 
 
-async def upgrade_rating(user: User, k: int = 1, limit: int = 100) -> BaseResponse:
+async def upgrade_rating(user: int, k: int = 1, limit: int = 100) -> BaseResponse:
     query = f'UPDATE "user" SET "rating"= "rating" + {k} WHERE "id"=$1 RETURNING id'
-    user_id = await misc.get_id_by(user.info.username)
-    rating = await get_rating(user_id)
+    rating = await get_rating(user)
 
     if rating <= limit:
-        return BaseResponse(message="User already have lowest rating!", id=user_id)
+        return BaseResponse(message="User already have lowest rating!", id=user)
 
     try:
         async with database.pool.acquire() as connection:
             async with connection.transaction():
-                await connection.execute(query, user_id)
+                await connection.execute(query, user)
     except asyncpg.PostgresError as err:
         logger.error(f"Error while upgrading user {repr(err)}")
         raise HTTPException(
@@ -148,7 +147,7 @@ async def upgrade_rating(user: User, k: int = 1, limit: int = 100) -> BaseRespon
             detail="Something went wrong while upgrading user",
         )
 
-    return BaseResponse(message="User downgraded successfully!", id=user_id)
+    return BaseResponse(message="User downgraded successfully!", id=user)
 
 
 async def get_rating(user_id: int) -> int:

@@ -26,7 +26,7 @@ async def create_rank(
     await services.rank.create(rank, description)
 
 
-@router.get("/rank", status_code=status.HTTP_200_OK)
+@router.get("/rank/{id}", status_code=status.HTTP_200_OK)
 async def get_rank(
     id: int,
 ) -> Any | None:
@@ -42,7 +42,7 @@ async def get_list_rank() -> list[Record]:
     return await services.rank.get_list()
 
 
-@router.delete("/rank", status_code=status.HTTP_200_OK)
+@router.delete("/rank/{name}", status_code=status.HTTP_200_OK)
 async def delete_rank(
     name: str, current_user: User = Security(get_current_user, scopes=["administrator"])
 ) -> None:

@@ -52,13 +52,22 @@ async def get(id: int) -> Tuple[bytes, str]:
         logger.debug(f"Uploading photo")
         try:
             result = await connection.fetchrow(
-                'SELECT "photo", "media_type" FROM "photo" WHERE id=$1', id
+                'SELECT "photo", "media_type" FROM "photo" \
+                    WHERE id=(\
+                        SELECT photo FROM "event" WHERE id=$1)',
+                id,
             )
         except asyncpg.PostgresError as err:
-            logger.error(f"Failed to create event! {repr(err)}")
+            logger.error(f"Failed to get image! {repr(err)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to upload picture for event!",
             )
-
-    return result[0], result[1]
+    try:
+        return result[0], result[1]
+    except TypeError as err:
+        logger.error(f"Failed to get image! {repr(err)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can't get picture, please create it firstly!!",
+        )

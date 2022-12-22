@@ -21,7 +21,7 @@ async def create(username: str, event: Event) -> int:
     async with database.pool.acquire() as connection:
         async with connection.transaction():
             organizer_id = await user.misc.get_id_by(username)
-            place_id = await place.misc.get_id_by(name=event.place)
+            place_id = await place.get_id_by(name=event.place)
 
             logger.debug(f"organizer id: {organizer_id}")
             try:

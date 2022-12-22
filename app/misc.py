@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from loguru import logger
 
 from app.dependencies import anauthorized_exception
 from app.models.user import User
@@ -16,12 +17,9 @@ async def check(current_user: User, err_msg: str) -> None:
         )
 
 
-async def is_user_owner(current_user: User, event_id: int) -> None:
+async def is_user_owner(current_user: User, event_id: int) -> bool:
     user_id = await user.misc.get_id_by(current_user.info.username)
     organizer_id = await event.get_organizer_id_by(event_id)
+    logger.debug(f"{user_id=}:{organizer_id=}")
 
-    if user_id != organizer_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can't change someone else's event! The user can only chage their own events",
-        )
+    return user_id == organizer_id
