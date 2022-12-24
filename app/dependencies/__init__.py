@@ -1,3 +1,4 @@
+import asyncpg
 import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
@@ -9,7 +10,7 @@ from starlette import status
 
 from app.dependencies.db import database
 from app.models.auth import TokenData
-from app.models.user import User, UserBaseInfo, UserDBMapping, UserMetaInfo
+from app.models.user import User, UserDB
 
 # Для получения такой строки:
 # openssl rand -hex 32
@@ -21,17 +22,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="token",
     scopes={
-        "subscriber": "Can subscribe to event",
-        "administrator": "Verification",
-        "organizer": "Organize events",
-        "low": "Low rank. Not prior events",
-        "advance": "Already good in this. All events",
-        "high": "Subscribes to private events",
+        "administrator": "Administation of the platform",
     },
 )
 
 
-async def get_user_db(username: str) -> UserDBMapping:
+async def get_user_db(username: str) -> UserDB:
     async with database.pool.acquire() as connection:
         async with connection.transaction():
             record = await database.pool.fetchrow(
@@ -45,28 +41,25 @@ async def get_user_db(username: str) -> UserDBMapping:
         )
 
     try:
-        user_base_info = UserBaseInfo(
-            full_name=record.get("name"),
-            username=record.get("username"),
-            email=record.get("email"),
+        user = UserDB(**record)
+    except ValidationError as error:
+        logger.error(f"Can't map values from DB to models. Possibly integrity error: {error}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Can't get user! Internal error! Possibly integrity erorr",
         )
-        user_meta_info = UserMetaInfo(
-            role=record.get("role"),
-            birthday=record.get("birhday"),
-            info=record.get("info"),
-            interests=record.get("interests"),
-            rank=record.get("rank"),
-            rating=record.get("rating"),
-            verified=record.get("verified"),
-        )
-        password = record.get("password")
-        user = UserDBMapping(info=user_base_info, meta=user_meta_info, password=password)
-    except (TypeError, ValidationError) as err:
-        msg = f"User: {username} not determined! "
-        logger.error(msg)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg) from err
-
     return user
+
+
+async def is_user_admin(user_id: int) -> bool:
+    async with database.pool.acquire() as connection:
+        async with connection.transaction():
+            record = await database.pool.fetchrow(
+                'SELECT * FROM "admin" WHERE user_id = $1',
+                user_id,
+            )
+
+    return bool(record)
 
 
 async def get_current_user(
@@ -92,7 +85,7 @@ async def get_current_user(
 
         token_scopes = payload.get("scopes", [])
         token_data = TokenData(scopes=token_scopes, username=username)
-    except (JWTError, ValidationError):
+    except (JWTError, ValidationError, jwt.exceptions.ExpiredSignatureError):
         raise credentials_exception
 
     if not token_data.username:
@@ -111,7 +104,7 @@ async def get_current_user(
                 headers={"WWW-Authenticate": authenticate_value},
             )
 
-    return User(info=user.info, meta=user.meta)
+    return user.to_representation()
 
 
 async def get_password_hash(password: str) -> str:
@@ -127,3 +120,29 @@ anauthorized_exception = HTTPException(
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"},
 )
+
+
+async def returning_id(record: asyncpg.Record) -> int:
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Something went wrong while writing to database! ID of new entity did not created! Please try later!",
+        )
+
+    try:
+        user_id = record["id"]
+    except (KeyError, TypeError, ValueError) as err:
+        logger.critical(err)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=err,
+        )
+
+    try:
+        return int(user_id)
+    except TypeError as err:
+        logger.critical("Incorrect type of returning value")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Possible changes in API response",
+        )

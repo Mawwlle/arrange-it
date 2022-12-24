@@ -1,8 +1,10 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
-class RegistrationResponse(BaseModel):
-    """Ответ на регистрацию"""
+class BaseResponse(BaseModel):
+    """Базовый ответ приложения"""
 
     message: str
     id: int
@@ -14,3 +16,10 @@ class UserResponse(BaseModel):
     message: str
     username: str
     id: int
+
+
+class CommentResponse(BaseModel):
+    text: str
+    time: datetime
+    user: int
+    event: int
