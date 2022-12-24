@@ -1,5 +1,3 @@
-from turtle import hideturtle
-
 from fastapi import APIRouter, HTTPException, Security, status
 
 from app import services
