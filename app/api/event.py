@@ -4,11 +4,11 @@
 from datetime import datetime
 
 from asyncpg import Record
-from fastapi import APIRouter, HTTPException, Response, Security, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, status
 from loguru import logger
 
 from app import services
-from app.dependencies import anauthorized_exception, get_current_user
+from app.dependencies import get_current_user
 from app.misc import check, is_user_owner
 from app.models.event import Event
 from app.models.responses import CommentResponse
@@ -17,10 +17,10 @@ from app.models.user import User
 router = APIRouter(tags=["event"])
 
 
-@router.post("/event", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_event(
     event: Event,
-    current_user: User = Security(get_current_user, scopes=["organizer"]),
+    current_user: User = Depends(get_current_user),
 ) -> int:
     """Создание события в базе данных
 
@@ -29,13 +29,13 @@ async def create_event(
 
     await check(current_user, err_msg="Can't create event. User not verified!")
 
-    return await services.event.create(username=current_user.info.username, event=event)
+    return await services.event.create(username=current_user.username, event=event)
 
 
-@router.delete("/event", status_code=status.HTTP_200_OK)
+@router.delete("/{id}", status_code=status.HTTP_200_OK)
 async def delete_event(
     id: int,
-    current_user: User = Security(get_current_user, scopes=["organizer"]),
+    current_user: User = Depends(get_current_user),
 ) -> int:
     """Удаление события из базы данных"""
 
@@ -49,25 +49,25 @@ async def delete_event(
     return await services.event.delete(id)
 
 
-@router.get("/event/comment", status_code=status.HTTP_200_OK)
+@router.get("/comment/{id}", status_code=status.HTTP_200_OK)
 async def get_comments(id: int) -> list[CommentResponse]:
     """Получить все комментарии события (Доступно любому пользователю)"""
 
     return await services.comment.get_by_event(event=id)
 
 
-@router.get("/event", status_code=status.HTTP_200_OK)
+@router.get("/", status_code=status.HTTP_200_OK)
 async def get_events() -> list[Record]:
     """Получение события (Доступно всем пользователям)"""
 
     return await services.event.get_list()
 
 
-@router.post("/event/picture", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/{event_id}/picture", status_code=status.HTTP_202_ACCEPTED)
 async def upload_picture_to_event(
     event_id: int,
     file: UploadFile,
-    current_user: User = Security(get_current_user, scopes=["organizer"]),
+    current_user: User = Depends(get_current_user),
 ) -> int:
     """Загрузка изображение в базу данных"""
     allowed_types = {
@@ -78,9 +78,6 @@ async def upload_picture_to_event(
         "image/bmp",
         "video/webm",
     }
-
-    if not current_user:
-        raise anauthorized_exception
 
     if await is_user_owner(current_user, event_id=event_id):
         raise HTTPException(
@@ -98,7 +95,7 @@ async def upload_picture_to_event(
     return await services.photo.create(contents, media_type=file.content_type, event_id=event_id)
 
 
-@router.get("/event/picture", status_code=status.HTTP_200_OK)
+@router.get("/{event_id}/picture", status_code=status.HTTP_200_OK)
 async def download_picture(event_id: int) -> Response:
     """Получение изображения в базу данных (Каждый может получить изображение по конкретному пользователю)"""
 
@@ -108,18 +105,15 @@ async def download_picture(event_id: int) -> Response:
     return Response(content=picture, media_type=media_type)
 
 
-@router.post("/event/comment", status_code=status.HTTP_201_CREATED)
+@router.post("/{event_id}/comment", status_code=status.HTTP_201_CREATED)
 async def create_comment(
-    comment: str,
     event_id: int,
-    current_user: User = Security(get_current_user, scopes=["organizer", "subscriber"]),
+    comment: str,
+    current_user: User = Depends(get_current_user),
 ) -> int:
     """Оставить комментарий"""
 
-    if not current_user:
-        raise anauthorized_exception
-
-    user_id = await services.user.misc.get_id_by(current_user.info.username)
+    user_id = await services.user.misc.get_id_by(current_user.username)
     time = datetime.now()
 
     return await services.comment.create(
@@ -127,7 +121,7 @@ async def create_comment(
     )
 
 
-@router.get("/event/comment/{id}", status_code=status.HTTP_200_OK)
+@router.get("/{event_id}/comment/{id}", status_code=status.HTTP_200_OK)
 async def get_comment_by_id(
     id: int,
     event_id: int,
@@ -137,10 +131,10 @@ async def get_comment_by_id(
     return await services.comment.get_by_id(id=id, event_id=event_id)
 
 
-@router.get("/event/{id}", status_code=status.HTTP_200_OK)
+@router.get("/{event_id}", status_code=status.HTTP_200_OK)
 async def get_event_by_id(
-    id: int,
+    event_id: int,
 ) -> Event:
     """Получение события (Доступно всем пользователям)"""
 
-    return await services.event.get(id)
+    return await services.event.get(event_id)

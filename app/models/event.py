@@ -3,6 +3,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+from app.models.place import Place
 from app.models.user import User
 
 
@@ -11,16 +12,6 @@ class State(str, Enum):
     ACTIVE = "active"
     ENDED = "ended"
     REJECTED = "rejected"
-
-
-class Point(BaseModel):
-    x: float
-    y: float
-
-
-class Place(BaseModel):
-    name: str
-    point: Point
 
 
 class Event(BaseModel):

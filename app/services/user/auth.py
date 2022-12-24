@@ -6,7 +6,7 @@ import jwt
 from fastapi import HTTPException, status
 from loguru import logger
 
-from app.dependencies import ALGORITHM, SECRET_KEY, get_user_db, verify_password
+from app.dependencies import ALGORITHM, SECRET_KEY, get_user_db, is_user_admin, verify_password
 from app.models.user import User
 
 
@@ -28,10 +28,15 @@ async def create_access_token(data: dict[str, Any], expires_delta: timedelta | N
     return encoded_jwt
 
 
-async def authenticate_user(username: str, password: str) -> User:
+async def authenticate_user(username: str, password: str, scopes: str) -> User:
     """Идентификация пользователя"""
 
     logger.info("Starting user auth")
+
+    if scopes:
+        authenticate_value = f'Bearer scope="{scopes}"'
+    else:
+        authenticate_value = "Bearer"
 
     user = await get_user_db(username)
 
@@ -46,15 +51,23 @@ async def authenticate_user(username: str, password: str) -> User:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect password!",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": authenticate_value},
         )
+
+    if "administrator" in scopes:
+        if not await is_user_admin(user.id):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Need to be admin!",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
 
     logger.info(
         f"User: \
-            {user.info.username}, \
-            {user.info.full_name}, \
-            {user.info.email} \
+            {user.username}, \
+            {user.name}, \
+            {user.email} \
         found in database and password is correct!"
     )
 
-    return User(info=user.info, meta=user.meta)
+    return user.to_representation()

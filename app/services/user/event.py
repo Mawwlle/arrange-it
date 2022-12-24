@@ -10,7 +10,7 @@ from app.services.user import misc
 
 async def subscribe(user: User, event_id: int) -> SubscribtionResponse:
     """Подписка на мероприятие"""
-    user_id = await misc.get_id_by(user.info.username)
+    user_id = await misc.get_id_by(user.username)
 
     async with database.pool.acquire() as connection:
         try:
@@ -32,7 +32,7 @@ async def subscribe(user: User, event_id: int) -> SubscribtionResponse:
 async def unsubscribe(user: User, event_id: int) -> SubscribtionResponse:
     """Отписка от мероприятия"""
 
-    user_id = await misc.get_id_by(user.info.username)
+    user_id = await misc.get_id_by(user.username)
 
     async with database.pool.acquire() as connection:
         try:
@@ -53,10 +53,30 @@ async def unsubscribe(user: User, event_id: int) -> SubscribtionResponse:
     )
 
 
+async def is_currently_user_subscribed_to_event(user: User, event_id: int) -> bool:
+    user_id = await misc.get_id_by(user.username)
+
+    try:
+        async with database.pool.acquire() as connection:
+            result = await connection.fetchrow(
+                'SELECT * FROM "user_visit_event" WHERE "user_id"=$1 AND "event_id"=$2',
+                user_id,
+                event_id,
+            )
+    except asyncpg.PostgresError as err:
+        logger.error(f"Error while getting user {repr(err)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User does not visit it! Or here something strange....",
+        )
+
+    return bool(result)
+
+
 async def visited(user: User, event_id: int) -> SubscribtionResponse:
     """Посещение мероприятия"""
 
-    user_id = await misc.get_id_by(user.info.username)
+    user_id = await misc.get_id_by(user.username)
 
     try:
         async with database.pool.acquire() as connection:

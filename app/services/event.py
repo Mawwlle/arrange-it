@@ -8,6 +8,7 @@ from loguru import logger
 
 from app.dependencies.db import database
 from app.models.event import Event
+from app.models.responses import BaseResponse
 from app.services import place, user
 
 
@@ -142,3 +143,21 @@ async def get_event_date(event_id: int) -> date:
             )
 
     return result.date()
+
+
+async def verify(id: int) -> BaseResponse:
+    try:
+        async with database.pool.acquire() as connection:
+            async with connection.transaction():
+                id = await connection.fetchval(
+                    'UPDATE "event" SET "verified"=TRUE, "state"="active"  WHERE "id"=$1 RETURNING id',
+                    id,
+                )
+    except asyncpg.PostgresError as err:
+        logger.error(f"Error while deleting user {repr(err)}")
+        raise
+
+    if not id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Event does not exist!")
+
+    return BaseResponse(message="Event verified successfully!", id=id)

@@ -1,46 +1,42 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Security, status
+from fastapi import APIRouter, Depends, HTTPException, Security, status
 from loguru import logger
 
 from app import services
-from app.dependencies import anauthorized_exception, get_current_user
+from app.dependencies import anauthorized_exception, get_current_user, get_user_db
 from app.misc import check, is_user_owner
 from app.models.subscription import SubscribtionResponse
 from app.models.user import User
 from app.services import user
+from app.services.user import misc
+from app.services.user.event import is_currently_user_subscribed_to_event
 
 router = APIRouter(tags=["event - subscription"])
 
 
-@router.post("/user/subscribe/{event}")
+@router.post("/{event}")
 async def subscription_to_event(
-    id: int,
-    current_user: User = Security(get_current_user, scopes=["subscriber"]),
+    event: int,
+    current_user: User = Depends(get_current_user),
 ) -> SubscribtionResponse:
     """Пользователь подписывается на мероприятие"""
 
-    if not current_user:
-        raise anauthorized_exception
-
-    if await is_user_owner(current_user, event_id=id):
+    if await is_user_owner(current_user, event_id=event):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You are can't subscribe to own event!",
         )
 
-    return await services.user.event.subscribe(user=current_user, event_id=id)
+    return await services.user.event.subscribe(user=current_user, event_id=event)
 
 
-@router.delete("/user/unsubscribe/{event}")
+@router.delete("/{event}")
 async def unsubscribe_from_event(
     event: int,
-    current_user: User = Security(get_current_user, scopes=["subscriber"]),
+    current_user: User = Depends(get_current_user),
 ) -> SubscribtionResponse:
     """Пользователь отписывается от мероприятия"""
-
-    if not current_user:
-        raise anauthorized_exception
 
     if await is_user_owner(current_user, event_id=event):
         raise HTTPException(
@@ -60,15 +56,18 @@ async def unsubscribe_from_event(
     return await user.event.unsubscribe(event_id=event, user=current_user)
 
 
-@router.patch("/user/visited/{event}")
+@router.patch("/{username}/visiting/{event}")
 async def user_visited_event(
+    username: str,
     event: int,
-    user_id: int,
-    current_user: User = Security(get_current_user, scopes=["organizer"]),
+    current_user: User = Depends(get_current_user),
 ) -> SubscribtionResponse:
     """Пользователь посетил от мероприятие (организатор подтверждает, что пользователь посетил мероприятиe)"""
 
+    user_db = await get_user_db(username)
+
     await check(current_user, err_msg="Can't delete event. User not verified!")
+
     if not await is_user_owner(
         event_id=event, current_user=current_user
     ):  # только организатор может это подтвердить
@@ -77,6 +76,15 @@ async def user_visited_event(
             detail="Only organizator can change it!",
         )
 
-    await user.upgrade_rating(user_id)
+    user_repr = user_db.to_representation()
 
-    return await user.event.visited(event_id=event, user=current_user)
+    if not await is_currently_user_subscribed_to_event(event_id=event, user=user_repr):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not subscribed to event!"
+        )
+
+    resp = await user.event.visited(event_id=event, user=user_repr)
+
+    await user.upgrade_rating(user_db.id)
+
+    return resp

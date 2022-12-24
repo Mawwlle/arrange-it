@@ -1,4 +1,5 @@
 """CRUD над рангами"""
+from email import message
 from typing import Any
 
 import asyncpg
@@ -7,14 +8,14 @@ from fastapi import HTTPException, status
 from loguru import logger
 
 from app.dependencies.db import database
-from app.models.event import Point
+from app.models.place import PlaceResponse, Point
 
 
-async def create(name: str, point: Point) -> None:
+async def create(name: str, point: Point) -> PlaceResponse:
     try:
         async with database.pool.acquire() as connection:
-            await connection.execute(
-                'INSERT INTO "place"("name", "point") VALUES ($1, POINT($2, $3))',
+            id = await connection.fetchval(
+                'INSERT INTO "place"("name", "point") VALUES ($1, POINT($2, $3)) RETURNING id',
                 name,
                 point.x,
                 point.y,
@@ -25,17 +26,21 @@ async def create(name: str, point: Point) -> None:
             detail="Can't create this place! Already created.",
         )
 
+    return PlaceResponse(
+        id=id, name=name, point=point, message=f"Place {name} successfully created!"
+    )
 
-async def get_by(id: int) -> Any | None:
+
+async def get_by(name: str) -> Any | None:
     async with database.pool.acquire() as connection:
         async with connection.transaction():
-            result = await connection.fetch('SELECT * FROM "place" WHERE id=$1', id)
-    return result[0]
+            result = await connection.fetchrow('SELECT * FROM "place" WHERE name=$1', name)
+    return result
 
 
 async def get_list() -> list[Record]:
     async with database.pool.acquire() as connection:
-        return await connection.fetch('SELECT * FROM "point"')
+        return await connection.fetch('SELECT * FROM "place"')
 
 
 async def get_id_by(name: str) -> int:

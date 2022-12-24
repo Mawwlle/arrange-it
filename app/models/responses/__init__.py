@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class BaseResponse(BaseModel):
-    """Ответ на регистрацию"""
+    """Базовый ответ приложения"""
 
     message: str
     id: int
